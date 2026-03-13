@@ -1,0 +1,643 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Inteligente de Recursos Humanos</title>
+
+  <!-- Biblioteca de gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg: #f2f5f8;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --text: #1f2937;
+      --muted: #5f6b7a;
+      --border: #d8e0e8;
+      --primary: #0f4c81;
+      --primary-soft: #e8f1f8;
+      --accent: #008a99;
+      --good: #1f9d55;
+      --warn: #f2a900;
+      --bad: #d64545;
+      --shadow: 0 10px 28px rgba(12, 34, 56, 0.08);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Calibri", "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 5%, #eaf2f8 0, transparent 32%),
+        radial-gradient(circle at 95% 12%, #d9eef0 0, transparent 26%),
+        var(--bg);
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      color: var(--primary);
+      letter-spacing: 0.2px;
+    }
+
+    .title-block p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .refresh-badge {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      box-shadow: var(--shadow);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: "";
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      top: -24px;
+      right: -24px;
+      border-radius: 50%;
+      background: var(--primary-soft);
+    }
+
+    .kpi-title {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 600;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-value {
+      margin: 8px 0 0;
+      font-size: 1.72rem;
+      font-weight: 700;
+      color: var(--text);
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-trend {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      position: relative;
+      z-index: 1;
+    }
+
+    .trend-up { color: var(--good); }
+    .trend-neutral { color: var(--warn); }
+    .trend-down { color: var(--bad); }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      min-height: 220px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+      color: var(--primary);
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .chart-wrap {
+      background: var(--surface-2);
+      border: 1px dashed #c8d4e2;
+      border-radius: 12px;
+      padding: 10px;
+      min-height: 220px;
+    }
+
+    .news-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .news-status {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: #0b3e68;
+    }
+
+    .news-list {
+      display: grid;
+      gap: 10px;
+      max-height: 620px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .news-item {
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--accent);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .news-item h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .news-item h3 a {
+      color: #16324f;
+      text-decoration: none;
+    }
+
+    .news-item h3 a:hover {
+      text-decoration: underline;
+    }
+
+    .news-meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .news-desc {
+      margin-top: 8px;
+      color: #334155;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 1120px) {
+      .kpi-grid {
+        grid-template-columns: repeat(3, minmax(160px, 1fr));
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .container {
+        padding: 14px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+      }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .title-block h1 {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <div class="title-block">
+        <h1>Painel Inteligente de Recursos Humanos</h1>
+        <p>Monitoramento de indicadores e notícias estratégicas de RH em tempo real.</p>
+      </div>
+      <div class="refresh-badge" id="ultimaAtualizacao">Última atualização: carregando...</div>
+    </header>
+
+    <!-- Cartões de métricas de RH (valores simulados) -->
+    <section class="kpi-grid" aria-label="Indicadores principais de RH">
+      <article class="kpi-card">
+        <p class="kpi-title">Índice de Turnover</p>
+        <p class="kpi-value" id="kpiTurnover">11,8%</p>
+        <p class="kpi-trend trend-neutral">Estável vs. mês anterior</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-title">Satisfação dos Colaboradores</p>
+        <p class="kpi-value" id="kpiSatisfacao">84%</p>
+        <p class="kpi-trend trend-up">+2,1 p.p.</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-title">Taxa de Absenteísmo</p>
+        <p class="kpi-value" id="kpiAbsenteismo">3,4%</p>
+        <p class="kpi-trend trend-down">-0,6 p.p.</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-title">Contratações no Mês</p>
+        <p class="kpi-value" id="kpiContratacoes">27</p>
+        <p class="kpi-trend trend-up">+8 contratações</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-title">Tempo Médio de Contratação</p>
+        <p class="kpi-value" id="kpiTempo">24 dias</p>
+        <p class="kpi-trend trend-up">-3 dias (melhora)</p>
+      </article>
+    </section>
+
+    <main class="dashboard-grid">
+      <section class="panel" aria-label="Gráficos de indicadores de RH">
+        <h2>Indicadores de RH (Simulados)</h2>
+        <div class="charts-grid">
+          <div class="chart-wrap">
+            <canvas id="chartTurnover"></canvas>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chartSatisfacao"></canvas>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chartAbsenteismo"></canvas>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chartContratacao"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Notícias de RH">
+        <h2>Notícias Recentes de RH</h2>
+        <div class="news-controls">
+          <span class="news-status" id="statusNoticias">Buscando notícias...</span>
+          <button class="btn" id="btnAtualizarNoticias" type="button">Atualizar agora</button>
+        </div>
+        <div class="news-list" id="listaNoticias"></div>
+        <p class="footer-note">
+          Fontes públicas consultadas via RSS: pesquisas do Google Notícias com termos de RH, Gestão de Pessoas, Liderança, Cultura Organizacional,
+          Mercado de Trabalho e Transformação Digital em RH.
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // =====================================================================
+    // CONFIGURAÇÃO GERAL
+    // =====================================================================
+
+    // Tempo de atualização automática das notícias: 4 horas.
+    const INTERVALO_ATUALIZACAO_MS = 4 * 60 * 60 * 1000;
+
+    // Termos estratégicos para busca de notícias de RH.
+    const TERMOS_RH = [
+      "Recursos Humanos",
+      "Gestão de Pessoas",
+      "Liderança",
+      "Cultura Organizacional",
+      "Mercado de Trabalho",
+      "Transformação Digital em RH"
+    ];
+
+    // URL base do RSS do Google Notícias em português do Brasil.
+    function montarRssGoogleNoticias(termo) {
+      const termoCodificado = encodeURIComponent(termo);
+      return `https://news.google.com/rss/search?q=${termoCodificado}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+    }
+
+    // Para evitar problemas de CORS em navegadores, usamos um endpoint público
+    // que converte RSS para JSON.
+    function montarUrlRss2Json(rssUrl) {
+      return `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+    }
+
+    // =====================================================================
+    // FUNÇÕES DE UI
+    // =====================================================================
+
+    function formatarData(isoOuData) {
+      const data = new Date(isoOuData);
+      if (Number.isNaN(data.getTime())) return "Data indisponível";
+      return new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "short"
+      }).format(data);
+    }
+
+    function atualizarCarimboAtualizacao() {
+      const el = document.getElementById("ultimaAtualizacao");
+      el.textContent = `Última atualização: ${formatarData(new Date())}`;
+    }
+
+    function limparHtml(texto) {
+      const div = document.createElement("div");
+      div.innerHTML = texto || "";
+      return div.textContent || div.innerText || "";
+    }
+
+    function resumir(texto, tamanho = 180) {
+      const limpo = limparHtml(texto).trim();
+      if (limpo.length <= tamanho) return limpo;
+      return `${limpo.slice(0, tamanho).trim()}...`;
+    }
+
+    function renderizarNoticias(noticias) {
+      const container = document.getElementById("listaNoticias");
+      const status = document.getElementById("statusNoticias");
+
+      container.innerHTML = "";
+
+      if (!noticias.length) {
+        container.innerHTML = `<div class=\"news-item\">Nenhuma notícia encontrada no momento.</div>`;
+        status.textContent = "Nenhuma notícia disponível agora.";
+        return;
+      }
+
+      noticias.forEach((item) => {
+        const article = document.createElement("article");
+        article.className = "news-item";
+
+        article.innerHTML = `
+          <h3>
+            <a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a>
+          </h3>
+          <div class="news-meta">Fonte: ${item.source} | Publicado em: ${formatarData(item.pubDate)}</div>
+          <div class="news-desc">${resumir(item.description || item.content || "Resumo indisponível")}</div>
+        `;
+
+        container.appendChild(article);
+      });
+
+      status.textContent = `${noticias.length} notícias carregadas.`;
+    }
+
+    // =====================================================================
+    // COLETA E AGREGAÇÃO DE NOTÍCIAS
+    // =====================================================================
+
+    async function buscarNoticiasPorTermo(termo) {
+      const rssUrl = montarRssGoogleNoticias(termo);
+      const url = montarUrlRss2Json(rssUrl);
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Falha ao buscar notícias para o termo: ${termo}`);
+      }
+
+      const data = await response.json();
+      const itens = Array.isArray(data.items) ? data.items : [];
+
+      return itens.map((item) => ({
+        title: item.title || "Sem título",
+        link: item.link || "#",
+        description: item.description || "",
+        content: item.content || "",
+        source: (item.source && item.source.title) ? item.source.title : "Google Notícias",
+        pubDate: item.pubDate || new Date().toISOString(),
+        termo
+      }));
+    }
+
+    async function carregarNoticias() {
+      const status = document.getElementById("statusNoticias");
+      status.textContent = "Atualizando notícias...";
+
+      try {
+        // Busca paralela de múltiplos termos estratégicos.
+        const resultados = await Promise.allSettled(
+          TERMOS_RH.map((termo) => buscarNoticiasPorTermo(termo))
+        );
+
+        const coletadas = resultados
+          .filter((r) => r.status === "fulfilled")
+          .flatMap((r) => r.value);
+
+        // Deduplicação por título + link.
+        const mapa = new Map();
+        coletadas.forEach((n) => {
+          const chave = `${(n.title || "").toLowerCase()}|${n.link}`;
+          if (!mapa.has(chave)) mapa.set(chave, n);
+        });
+
+        const unicas = Array.from(mapa.values());
+
+        // Ordena por data de publicação (mais recentes primeiro).
+        unicas.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+        // Limita para manter leitura objetiva no dashboard.
+        const topNoticias = unicas.slice(0, 20);
+
+        renderizarNoticias(topNoticias);
+        atualizarCarimboAtualizacao();
+      } catch (error) {
+        console.error(error);
+        status.textContent = "Erro ao carregar notícias. Tente novamente em instantes.";
+        document.getElementById("listaNoticias").innerHTML = `
+          <div class="news-item">
+            Não foi possível atualizar os feeds agora. Verifique sua conexão ou política de acesso externo do SharePoint.
+          </div>
+        `;
+      }
+    }
+
+    // =====================================================================
+    // GRÁFICOS DE INDICADORES SIMULADOS (Chart.js)
+    // =====================================================================
+
+    function iniciarGraficos() {
+      // Turnover mensal (linha)
+      new Chart(document.getElementById("chartTurnover"), {
+        type: "line",
+        data: {
+          labels: ["Out", "Nov", "Dez", "Jan", "Fev", "Mar"],
+          datasets: [{
+            label: "Turnover (%)",
+            data: [13.1, 12.7, 12.4, 12.0, 11.9, 11.8],
+            borderColor: "#0f4c81",
+            backgroundColor: "rgba(15,76,129,0.16)",
+            tension: 0.35,
+            fill: true,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true } }
+        }
+      });
+
+      // Satisfação por área (barra)
+      new Chart(document.getElementById("chartSatisfacao"), {
+        type: "bar",
+        data: {
+          labels: ["TI", "Comercial", "Operações", "Financeiro", "RH"],
+          datasets: [{
+            label: "Satisfação (%)",
+            data: [88, 79, 82, 85, 91],
+            backgroundColor: ["#0f4c81", "#2e73a8", "#4c91bd", "#69afcf", "#008a99"]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, max: 100 } },
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      // Absenteísmo por mês (doughnut)
+      new Chart(document.getElementById("chartAbsenteismo"), {
+        type: "doughnut",
+        data: {
+          labels: ["Presença", "Ausências"],
+          datasets: [{
+            data: [96.6, 3.4],
+            backgroundColor: ["#1f9d55", "#d64545"]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } }
+        }
+      });
+
+      // Contratações x Tempo médio (barra + linha)
+      new Chart(document.getElementById("chartContratacao"), {
+        data: {
+          labels: ["Out", "Nov", "Dez", "Jan", "Fev", "Mar"],
+          datasets: [
+            {
+              type: "bar",
+              label: "Contratações",
+              data: [18, 21, 16, 23, 24, 27],
+              backgroundColor: "#008a99",
+              yAxisID: "y"
+            },
+            {
+              type: "line",
+              label: "Tempo médio (dias)",
+              data: [31, 29, 30, 28, 26, 24],
+              borderColor: "#f2a900",
+              backgroundColor: "#f2a900",
+              tension: 0.3,
+              yAxisID: "y1"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              position: "left"
+            },
+            y1: {
+              beginAtZero: true,
+              position: "right",
+              grid: { drawOnChartArea: false }
+            }
+          }
+        }
+      });
+    }
+
+    // =====================================================================
+    // INICIALIZAÇÃO DA PÁGINA
+    // =====================================================================
+
+    document.getElementById("btnAtualizarNoticias").addEventListener("click", carregarNoticias);
+
+    // Inicializa os gráficos simulados.
+    iniciarGraficos();
+
+    // Carregamento inicial das notícias.
+    carregarNoticias();
+
+    // Atualização automática de notícias a cada algumas horas.
+    setInterval(carregarNoticias, INTERVALO_ATUALIZACAO_MS);
+  </script>
+</body>
+</html>
